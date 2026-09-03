@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "car-mock",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["server.py", "--mock"],
+      "port": 8080
+    }
+  ]
+}

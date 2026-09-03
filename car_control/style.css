@@ -1,0 +1,609 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+body {
+  background: #0a0f1a;
+  color: #fff;
+  font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  background: #0d1525;
+  border-bottom: 1px solid #1e2d45;
+  flex-shrink: 0;
+  font-size: 12px;
+  gap: 8px;
+}
+
+.topbar-left, .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.topbar-right {
+  justify-content: flex-end;
+}
+
+.topbar-center {
+  font-size: 14px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.dot-online {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4cff72;
+  display: inline-block;
+}
+
+.status-label {
+  color: #4cff72;
+}
+
+.dot-offline {
+  background: #ff5577;
+}
+
+.status-offline {
+  color: #ff5577;
+}
+
+/* ── Main area ── */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Left panel: camera control ── */
+.panel-left {
+  width: 22%;
+  background: #0d1830;
+  border-right: 1px solid #1e2d45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  gap: 10px;
+}
+
+.panel-title {
+  font-size: 11px;
+  color: #4da6ff;
+  letter-spacing: 1px;
+  text-align: center;
+  border-bottom: 1px solid #1e2d45;
+  padding-bottom: 6px;
+  width: 100%;
+}
+
+.cam-btn {
+  background: #0f1e38;
+  border: 1.5px solid #2a4070;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  font-size: 13px;
+  color: #cde;
+}
+
+.cam-btn:active, .cam-btn.pressed {
+  background: #1a3a6a;
+  border-color: #4da6ff;
+}
+
+.cam-btn .arrow {
+  font-size: 22px;
+}
+
+.cam-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  flex: 1;
+  /* 這裡不能用 min-height: 0 —— 方向鍵會被壓成 0 高度疊在一起。
+     150px 是三排按鈕的內容高度（箭頭 22 + 間距 4 + 文字，乘三排再加格線
+     間距），再小按鈕就會溢出格線、疊到底下的「人臉偵測」上。 */
+  min-height: 150px;
+}
+
+.cam-spacer {
+  /* empty grid cell */
+}
+
+/* ── 手動 / 自動模式切換 ── */
+.mode-switch {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  border: 1.5px solid #2a4070;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 7px 4px;
+  background: #0f1e38;
+  border: none;
+  color: #7a90b0;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mode-btn.active {
+  background: #1a5fc8;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 自動模式下方向鍵不能用，做出明顯的停用外觀 */
+.cam-grid.locked {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ── 影像上的狀態提示 ── */
+.alert-stack {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.alert-chip {
+  display: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.alert-chip.show {
+  display: block;
+}
+
+.alert-patrol {
+  background: #14406a;
+  color: #9cf;
+}
+
+.badge-angle {
+  position: absolute;
+  top: 30px;
+  left: 10px;
+  font-size: 10px;
+  color: #8ab;
+}
+
+/* ── 目標偵測狀態列（人臉偵測按鈕下方，恆常顯示）── */
+.target-status {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 4px;
+  background: #0a1020;
+  border: 1px solid #1e2d45;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #667a8c;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+/* 偵測到目標時只換文字，不加任何高亮 —— 維持和面板一致的樣式。
+   .found 這個 class 仍然會被切換，之後若要加回視覺區別可以直接用。 */
+.target-status.found {
+  color: #cddeef;
+}
+
+.target-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2a3546;
+}
+
+/* ── 人臉偵測開關 ── */
+.track-btn {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  background: #0f1e38;
+  border: 1.5px solid #2a4070;
+  border-radius: 10px;
+  color: #cde;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.track-btn.on {
+  background: #14402a;
+  border-color: #4cff72;
+  color: #dfe;
+}
+
+.track-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #445;
+}
+
+.track-btn.on .track-dot {
+  background: #4cff72;
+}
+
+/* ── Center: video feed ── */
+.panel-center {
+  flex: 1;
+  position: relative;
+  /* 串流還沒進來之前的底色 */
+  background: linear-gradient(160deg, #0a1a0a 0%, #0d2010 60%, #112805 100%);
+  overflow: hidden;
+}
+
+/* 即時影像鋪滿整個中央區域；用 contain 保留完整視野不裁切 */
+.video-stream {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.video-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #6a8;
+}
+
+/* 有影格進來之後就把「等待訊號」蓋掉 */
+.panel-center.stream-ok .video-status {
+  display: none;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+
+.badge-rec {
+  position: absolute;
+  top: 8px; left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff3b3b;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.badge-fps {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 11px;
+  color: #acd;
+}
+
+.badge-res {
+  position: absolute;
+  bottom: 8px; left: 10px;
+  font-size: 10px;
+  color: #8ab;
+}
+
+.badge-latency {
+  position: absolute;
+  bottom: 8px; right: 10px;
+  font-size: 10px;
+  color: #8ab;
+}
+
+/* ── Right panel: joystick ── */
+.panel-right {
+  width: 28%;
+  background: #0d1830;
+  border-left: 1px solid #1e2d45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 8px;
+  gap: 10px;
+}
+
+.joystick-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  /* flex item 預設不能縮到內容以下，不解開的話面板一放不下東西，
+     底下的車身姿態就會被切掉，而不是搖桿讓位 */
+  min-height: 0;
+}
+
+.joystick-ring {
+  position: relative;
+  /* 32vh 這個上限是給手機橫向用的：只有 360px 高的時候 140px 放不下，
+     底下的車身姿態會被切掉。不能改用 max-height —— 寬度是寫死的，
+     只壓高度會讓 aspect-ratio 失效，圓圈變成橢圓。 */
+  width: min(80%, 140px, 32vh);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #111d35;
+  border: 2px solid #2a3f60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* directional arrows on the ring */
+.d-arrow {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 16px;
+  color: #7ab;
+}
+
+.d-arrow.up    { top: 4px;    left: 50%; transform: translateX(-50%); }
+.d-arrow.down  { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.d-arrow.left  { left: 4px;   top: 50%;  transform: translateY(-50%); }
+.d-arrow.right { right: 4px;  top: 50%;  transform: translateY(-50%); }
+
+/* center knob */
+.joystick-knob {
+  width: 44%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%, #5b9ef7, #1a5fc8 60%, #0d3a8a);
+  box-shadow: 0 2px 12px #1a5fc888, inset 0 -2px 6px #0a2a6a;
+  cursor: pointer;
+  position: relative;
+  z-index: 2;
+  touch-action: none;
+  transition: transform 0.1s;
+}
+
+.joystick-knob.active {
+  transform: scale(0.93);
+}
+
+/* ── Bottom bar ── */
+.bottombar {
+  display: flex;
+  background: #0d1525;
+  border-top: 1px solid #1e2d45;
+  padding: 6px 14px;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+.sensor-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  background: #0a1020;
+  border-radius: 8px;
+  padding: 5px 10px;
+}
+
+.sensor-icon {
+  font-size: 18px;
+}
+
+.sensor-label {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.sensor-label span {
+  color: #4da6ff;
+}
+
+.air-quality {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.air-quality.good {
+  background: #28a745;
+  color: #fff;
+}
+
+.air-quality.moderate {
+  background: #ffc107;
+  color: #000;
+}
+
+.air-quality.poor {
+  background: #dc3545;
+  color: #fff;
+}
+
+/* ── 車身姿態（MPU6050）── */
+/* 放在左邊面板（22% 寬）底下，所以做得比原本緊湊一些 */
+.attitude {
+  width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: #0a1020;
+  border: 1px solid #1e2d45;
+  border-radius: 8px;
+}
+
+/* 人工地平儀：外框固定不動，裡面的天地線跟著車身反向轉，
+   看起來就像從車上往前看出去的視野。 */
+.attitude-view {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid #2a3f60;
+  background: #111d35;
+  overflow: hidden;
+}
+
+/* 做成兩倍大再往左上退一半：這樣不管轉到什麼角度，圓框裡都還是被
+   天地填滿，不會轉出空白的角落。 */
+.horizon {
+  position: absolute;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.18s linear;   /* 跟得上 0.2 秒一次的推播又不抖 */
+}
+
+.horizon-sky {
+  flex: 1;
+  background: #1d3a63;
+}
+
+.horizon-ground {
+  flex: 1;
+  background: #3b2b1a;
+  border-top: 1.5px solid #7fb2ff;      /* 這條就是地平線 */
+}
+
+/* 中央固定不動的車身標記，用來對照天地線歪多少 */
+.horizon-mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.horizon-wing {
+  width: 12px;
+  height: 2px;
+  background: #ffd166;
+}
+
+.horizon-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffd166;
+}
+
+.attitude-values {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.attitude-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.attitude-key {
+  color: #667a8c;
+  white-space: nowrap;
+}
+
+.attitude-val {
+  color: #4da6ff;
+  font-weight: bold;
+  white-space: nowrap;
+  /* 數字等寬，讀數一直在跳的時候才不會左右彈來彈去 */
+  font-variant-numeric: tabular-nums;
+}
+
+/* 感測器沒接上或掉線：讀數變灰、地平儀淡出，
+   不要停在最後一個值讓人以為車還在那個角度 */
+.attitude.offline .attitude-val {
+  color: #3d4a5c;
+}
+
+.attitude.offline .horizon {
+  opacity: 0.3;
+}
+
+/* ── Joystick direction highlight ── */
+.joystick-ring.dir-up    .d-arrow.up    { color: #4da6ff; }
+.joystick-ring.dir-down  .d-arrow.down  { color: #4da6ff; }
+.joystick-ring.dir-left  .d-arrow.left  { color: #4da6ff; }
+.joystick-ring.dir-right .d-arrow.right { color: #4da6ff; }

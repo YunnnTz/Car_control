@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="screen-orientation" content="landscape" />
+  <title>智慧車遠端控制</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <span>📶 Wi-Fi 192.168.1.100</span>
+      <span class="dot-online" id="connection-dot"></span>
+      <span class="status-label" id="connection-status">連線中</span>
+    </div>
+    <div class="topbar-center">智慧車遠端控制</div>
+    <!-- 空的，但要留著：標題是靠左右兩邊各佔 flex:1 才置中的 -->
+    <div class="topbar-right"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Left: camera control -->
+    <div class="panel-left">
+      <div class="panel-title">鏡頭方向控制</div>
+
+      <div class="mode-switch">
+        <button class="mode-btn active" id="btn-mode-manual" type="button">手動</button>
+        <button class="mode-btn" id="btn-mode-auto" type="button">自動</button>
+      </div>
+
+      <div class="cam-grid" id="cam-grid">
+        <div class="cam-spacer"></div>
+        <button class="cam-btn" id="btn-cam-up"
+          ontouchstart="camPress('up')" ontouchend="camRelease('btn-cam-up')"
+          onmousedown="camPress('up')"  onmouseup="camRelease('btn-cam-up')">
+          <span class="arrow">↑</span>
+          <span>上</span>
+        </button>
+        <div class="cam-spacer"></div>
+
+        <button class="cam-btn" id="btn-cam-left"
+          ontouchstart="camPress('left')" ontouchend="camRelease('btn-cam-left')"
+          onmousedown="camPress('left')"  onmouseup="camRelease('btn-cam-left')">
+          <span class="arrow">←</span>
+          <span>左</span>
+        </button>
+        <div class="cam-spacer"></div>
+        <button class="cam-btn" id="btn-cam-right"
+          ontouchstart="camPress('right')" ontouchend="camRelease('btn-cam-right')"
+          onmousedown="camPress('right')"  onmouseup="camRelease('btn-cam-right')">
+          <span class="arrow">→</span>
+          <span>右</span>
+        </button>
+
+        <div class="cam-spacer"></div>
+        <button class="cam-btn" id="btn-cam-down"
+          ontouchstart="camPress('down')" ontouchend="camRelease('btn-cam-down')"
+          onmousedown="camPress('down')"  onmouseup="camRelease('btn-cam-down')">
+          <span class="arrow">↓</span>
+          <span>下</span>
+        </button>
+        <div class="cam-spacer"></div>
+      </div>
+
+      <button class="track-btn" id="btn-face-track" type="button">
+        <span class="track-dot"></span><span id="track-label">人臉偵測</span>
+      </button>
+
+      <div class="target-status" id="target-status">
+        <span class="target-dot"></span><span id="target-text">未偵測到目標</span>
+      </div>
+
+      <!-- 車身姿態（MPU6050）。左邊面板空間吃緊，不另外放標題列，
+           地平儀加上「橫滾 / 俯仰」的欄名已經看得懂 -->
+      <div class="attitude offline" id="attitude">
+        <!-- 人工地平儀：外框固定，裡面的天地線跟著車身反向轉 -->
+        <div class="attitude-view">
+          <div class="horizon" id="horizon">
+            <div class="horizon-sky"></div>
+            <div class="horizon-ground"></div>
+          </div>
+          <div class="horizon-mark">
+            <span class="horizon-wing"></span>
+            <span class="horizon-dot"></span>
+            <span class="horizon-wing"></span>
+          </div>
+        </div>
+
+        <div class="attitude-values">
+          <div class="attitude-row">
+            <span class="attitude-key">橫滾</span>
+            <span class="attitude-val" id="imu-roll">--</span>
+          </div>
+          <div class="attitude-row">
+            <span class="attitude-key">俯仰</span>
+            <span class="attitude-val" id="imu-pitch">--</span>
+          </div>
+          <div class="attitude-row">
+            <span class="attitude-key">轉向</span>
+            <span class="attitude-val" id="imu-yaw">--</span>
+          </div>
+          <div class="attitude-row">
+            <span class="attitude-key">加速度</span>
+            <span class="attitude-val" id="imu-accel">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+
+    <!-- Center: video feed -->
+    <div class="panel-center" id="panel-center">
+      <img class="video-stream" id="video-stream" src="/stream" alt="">
+      <div class="video-status">📷 等待影像訊號…</div>
+      <div class="video-overlay">
+        <div class="badge-rec"><span class="rec-dot"></span>REC</div>
+        <div class="badge-fps">FPS: 30</div>
+
+        <div class="alert-stack">
+          <div class="alert-chip alert-patrol" id="alert-patrol">巡邏掃描中</div>
+        </div>
+
+        <div class="badge-angle">雲台 <span id="angle-readout">0° / 0°</span></div>
+        <div class="badge-res">分辨率: <span id="stream-res">--</span></div>
+        <div class="badge-latency">延遲: 120 ms</div>
+      </div>
+    </div>
+
+    <!-- Right: joystick -->
+    <div class="panel-right">
+      <div class="panel-title">移動控制</div>
+      <div class="joystick-wrap">
+        <div class="joystick-ring" id="joystick-ring">
+          <span class="d-arrow up">↑</span>
+          <span class="d-arrow left">←</span>
+          <span class="d-arrow right">→</span>
+          <span class="d-arrow down">↓</span>
+          <div class="joystick-knob" id="joystick-knob"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottombar">
+    <div class="sensor-item">
+      <span class="sensor-icon">🌡️</span>
+      <span class="sensor-label">溫度: <span id="temp">24.5°C</span></span>
+    </div>
+    <div class="sensor-item">
+      <span class="sensor-icon">💧</span>
+      <span class="sensor-label">濕度: <span id="humi">55%</span></span>
+    </div>
+    <div class="sensor-item">
+      <span class="sensor-icon">🌫️</span>
+      <span class="sensor-label">空氣品質: <span id="air-quality" class="air-quality good">優良</span></span>
+    </div>
+    <div class="sensor-item">
+      <span class="sensor-icon">☀️</span>
+      <span class="sensor-label">光照值: <span id="light">850 lux</span></span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
+</body>
+</html>
